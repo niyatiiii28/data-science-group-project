@@ -1,0 +1,47 @@
+# Model-specific configuration
+# Tune these without changing code
+
+model1_hierarchical:
+  decay_factor: 0.85
+  top_k_per_level: 5
+  min_similarity_threshold: 0.3
+  levels:
+    - department
+    - category
+    - subcategory
+    - product_type
+    - product
+
+model2_flat_semantic:
+  index_type: FlatL2        # FlatL2 for <5K products, IVFFlat for larger
+  nlist: 100                # Number of Voronoi cells (IVF only)
+  nprobe: 10                # Number of cells to search (IVF only)
+  normalize_embeddings: true
+
+model3_enhanced:
+  index_type: FlatL2
+  nlist: 100
+  nprobe: 10
+  normalize_embeddings: true
+  rerank_weights:
+    semantic_similarity: 0.60
+    rating_score: 0.15
+    reviews_score: 0.10
+    price_relevance: 0.10
+    stock_bonus: 0.05
+
+model4_llm:
+  reuse_model3_index: true
+  llm_timeout_seconds: 10
+  llm_max_retries: 2
+  fallback_to_model3: true
+  system_prompt: |
+    You are a product search query optimizer for an e-commerce platform.
+    Given a vague or conversational user query, extract and return structured search terms.
+    Return ONLY a refined search query string, nothing else.
+    Focus on: product type, category, key attributes, use case.
+
+search_defaults:
+  top_k: 5
+  max_top_k: 50
+  min_confidence: 0.1

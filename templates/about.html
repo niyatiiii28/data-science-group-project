@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}About — Semantic Search Engine{% endblock %}
+
+{% block content %}
+<div class="about-page">
+    <h1>About This Project</h1>
+
+    <section>
+        <h2>E-Commerce Semantic Search Engine</h2>
+        <p>This system demonstrates semantic product discovery using word embeddings and vector similarity search.
+        Unlike traditional keyword-based search, it understands the <strong>meaning</strong> behind queries.</p>
+    </section>
+
+    <section>
+        <h2>4 Search Models</h2>
+        <div class="model-cards">
+            <div class="model-card">
+                <h3>Model 1: Hierarchical Graph Search</h3>
+                <p>Traverses a 5-level product taxonomy (Department → Category → Subcategory → Product Type → Product)
+                with score decay at each level. Best for structured, category-aware queries.</p>
+                <span class="tech-tag">NetworkX</span> <span class="tech-tag">BERT Embeddings</span>
+            </div>
+            <div class="model-card">
+                <h3>Model 2: Flat Semantic Search</h3>
+                <p>Treats all products equally. Encodes product text into 384-dim vectors and finds nearest neighbors using FAISS.
+                Fast, simple, and cross-category.</p>
+                <span class="tech-tag">Sentence-BERT</span> <span class="tech-tag">FAISS</span>
+            </div>
+            <div class="model-card">
+                <h3>Model 3: Enhanced Semantic Search</h3>
+                <p>Extends Model 2 with enriched 300+ word descriptions and metadata re-ranking (rating, reviews, price).
+                Best balance of quality and speed.</p>
+                <span class="tech-tag">Enriched Data</span> <span class="tech-tag">Re-ranking</span>
+            </div>
+            <div class="model-card">
+                <h3>Model 4: LLM-Enhanced Search</h3>
+                <p>Uses a Large Language Model to refine vague/conversational queries before searching.
+                Handles "I need something for..." style queries best.</p>
+                <span class="tech-tag">GPT API</span> <span class="tech-tag">Query Refinement</span>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Technology Stack</h2>
+        <div class="tech-stack">
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">Flask</span>
+            <span class="tech-tag">Sentence-Transformers</span>
+            <span class="tech-tag">FAISS</span>
+            <span class="tech-tag">NetworkX</span>
+            <span class="tech-tag">Pandas</span>
+            <span class="tech-tag">Pydantic</span>
+            <span class="tech-tag">NLTK</span>
+            <span class="tech-tag">OpenAI API</span>
+        </div>
+    </section>
+
+    <section>
+        <h2>Dataset</h2>
+        <p>Based on the <a href="https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products" target="_blank">Flipkart Products Dataset</a>
+        from Kaggle — 20,000 products across multiple departments with hierarchical categories,
+        descriptions, ratings, brands, and prices.</p>
+    </section>
+</div>
+{% endblock %}

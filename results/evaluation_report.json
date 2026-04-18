@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-04-18T20:00:59.704835",
+  "results": [
+    {
+      "model_id": "model1_hierarchical",
+      "query_type": "exact",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 1980.44
+    },
+    {
+      "model_id": "model1_hierarchical",
+      "query_type": "semantic",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 436.31
+    },
+    {
+      "model_id": "model1_hierarchical",
+      "query_type": "vague",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 492.11
+    },
+    {
+      "model_id": "model2_flat_semantic",
+      "query_type": "exact",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 32.56
+    },
+    {
+      "model_id": "model2_flat_semantic",
+      "query_type": "semantic",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 32.47
+    },
+    {
+      "model_id": "model2_flat_semantic",
+      "query_type": "vague",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 32.37
+    },
+    {
+      "model_id": "model3_enhanced",
+      "query_type": "exact",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 39.49
+    },
+    {
+      "model_id": "model3_enhanced",
+      "query_type": "semantic",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 50.34
+    },
+    {
+      "model_id": "model3_enhanced",
+      "query_type": "vague",
+      "precision_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "ndcg": 0.0,
+      "f1_score": 0.0,
+      "avg_query_time_ms": 46.41
+    }
+  ]
+}

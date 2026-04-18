@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Compare Models — Semantic Search Engine{% endblock %}
+
+{% block content %}
+<div class="compare-page">
+    <h1>Model Comparison</h1>
+    <p class="subtitle">Run the same query across all 4 models and compare results side-by-side</p>
+
+    <div class="search-box">
+        <input type="text" id="compareInput" placeholder="Enter a query to compare across all models">
+        <button onclick="compareModels()">Compare All</button>
+    </div>
+
+    <div id="compareLoading" class="loading hidden">
+        <div class="spinner"></div>
+        <p>Running all 4 models...</p>
+    </div>
+
+    <div id="compareResults" class="compare-grid"></div>
+</div>
+
+<script>
+async function compareModels() {
+    const query = document.getElementById('compareInput').value.trim();
+    if (!query) return;
+
+    const loading = document.getElementById('compareLoading');
+    const resultsDiv = document.getElementById('compareResults');
+    loading.classList.remove('hidden');
+    resultsDiv.innerHTML = '';
+
+    const models = [
+        { id: 'model1_hierarchical', name: 'Model 1: Hierarchical' },
+        { id: 'model2_flat_semantic', name: 'Model 2: Flat Semantic' },
+        { id: 'model3_enhanced', name: 'Model 3: Enhanced' },
+        { id: 'model4_llm', name: 'Model 4: LLM Enhanced' },
+    ];
+
+    const results = await Promise.allSettled(
+        models.map(m =>
+            fetch('/api/search/' + m.id, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, top_k: 5 }),
+            }).then(r => r.json())
+        )
+    );
+
+    loading.classList.add('hidden');
+
+    let html = '';
+    results.forEach((result, i) => {
+        const model = models[i];
+        html += `<div class="compare-column">`;
+        html += `<h3>${model.name}</h3>`;
+
+        if (result.status === 'fulfilled' && result.value.results) {
+            const data = result.value;
+            html += `<p class="compare-meta">${data.total_results} results in ${data.query_time_ms}ms</p>`;
+            data.results.forEach((p, idx) => {
+                html += `
+                    <div class="compare-card">
+                        <span class="rank">#${idx + 1}</span>
+                        <strong>${p.product_name}</strong>
+                        <span class="confidence">${(p.confidence_score * 100).toFixed(1)}%</span>
+                        <small>${p.category} · ${p.brand} · ₹${p.price}</small>
+                    </div>`;
+            });
+        } else {
+            html += `<p class="error">Model unavailable</p>`;
+        }
+        html += `</div>`;
+    });
+
+    resultsDiv.innerHTML = html;
+}
+</script>
+{% endblock %}

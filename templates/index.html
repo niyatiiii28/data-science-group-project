@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Search Products — Semantic Search Engine{% endblock %}
+
+{% block content %}
+<div class="search-hero">
+    <h1>E-Commerce Semantic Search</h1>
+    <p class="subtitle">Find products using natural language — not just keywords</p>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Try: 'comfortable shoes for office work' or 'something to read books digitally'" autofocus>
+        <button id="searchBtn" onclick="performSearch()">Search</button>
+    </div>
+
+    <div class="search-options">
+        <label for="modelSelect">Model:</label>
+        <select id="modelSelect">
+            <option value="">Auto (Model 3 — Best Balance)</option>
+            <option value="model1_hierarchical">Model 1 — Hierarchical Graph</option>
+            <option value="model2_flat_semantic">Model 2 — Flat Semantic</option>
+            <option value="model3_enhanced">Model 3 — Enhanced Semantic</option>
+            <option value="model4_llm">Model 4 — LLM Enhanced</option>
+            <option value="ensemble">Ensemble (All Models)</option>
+        </select>
+
+        <label for="topkSelect">Results:</label>
+        <select id="topkSelect">
+            <option value="5" selected>Top 5</option>
+            <option value="10">Top 10</option>
+            <option value="20">Top 20</option>
+        </select>
+    </div>
+</div>
+
+<div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+    <p>Searching...</p>
+</div>
+
+<div id="searchMeta" class="search-meta hidden"></div>
+
+<div id="results" class="results-grid"></div>
+
+<div id="noResults" class="no-results hidden">
+    <p>No results found. Try a different query!</p>
+</div>
+
+<div class="sample-queries">
+    <h3>Try these queries:</h3>
+    <div class="query-chips">
+        <button class="chip" onclick="tryQuery('comfortable office shoes')">comfortable office shoes</button>
+        <button class="chip" onclick="tryQuery('best athletic footwear for running')">athletic footwear for running</button>
+        <button class="chip" onclick="tryQuery('device for reading digital books')">device for reading books</button>
+        <button class="chip" onclick="tryQuery('something to watch movies on')">something to watch movies</button>
+        <button class="chip" onclick="tryQuery('kitchen tools for cooking')">kitchen tools for cooking</button>
+        <button class="chip" onclick="tryQuery('comfortable clothes for workout')">workout clothes</button>
+    </div>
+</div>
+{% endblock %}
