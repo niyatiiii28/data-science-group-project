@@ -7,33 +7,33 @@ venv/
 dist/
 build/
 
-# Model artifacts (large files)
-models/model1/*.pkl
-models/model1/*.npy
-models/model2/*.faiss
-models/model2/*.npy
-models/model2/*.pkl
-models/model3/*.faiss
-models/model3/*.npy
-models/model3/*.pkl
-models/model4/*.json
-models/_cache/
+# # Model artifacts (large files)
+# models/model1/*.pkl
+# models/model1/*.npy
+# models/model2/*.faiss
+# models/model2/*.npy
+# models/model2/*.pkl
+# models/model3/*.faiss
+# models/model3/*.npy
+# models/model3/*.pkl
+# models/model4/*.json
+# models/_cache/
 
-# Data (download separately)
-data/raw/*.csv
-data/processed/*.csv
-data/processed/*.json
+# # Data (download separately)
+# data/raw/*.csv
+# data/processed/*.csv
+# data/processed/*.json
 
-# Logs
-logs/
+# # Logs
+# logs/
 
-# IDE
-.vscode/
-.idea/
+# # IDE
+# .vscode/
+# .idea/
 
-# Jupyter
-.ipynb_checkpoints/
+# # Jupyter
+# .ipynb_checkpoints/
 
-# OS
-.DS_Store
-Thumbs.db
+# # OS
+# .DS_Store
+# Thumbs.db

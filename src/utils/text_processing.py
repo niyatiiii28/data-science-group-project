@@ -119,15 +119,51 @@ def normalize_hinglish(text: str) -> str:
     return " ".join(result)
 
 
+# Flipkart boilerplate patterns that appear in nearly every description and
+# dominate embeddings if not removed. Order matters: longer phrases first.
+_BOILERPLATE_PATTERNS = [
+    r"buy\s+.*?\s+(?:online|for\s+rs\.?\s*[\d,]+(?:\.\d+)?)",
+    r"only\s+for\s+rs\.?\s*[\d,]+(?:\.\d+)?",
+    r"price\s*[:\-]?\s*rs\.?\s*[\d,]+(?:\.\d+)?",
+    r"at\s+best\s+price[s]?",
+    r"from\s+flipkart\.com",
+    r"on\s+flipkart\.com",
+    r"flipkart\.com",
+    r"only\s+genuine\s+products?\.?",
+    r"30\s*day\s+replacement\s+guarantee\.?",
+    r"free\s+shipping\.?",
+    r"cash\s+on\s+delivery\.?",
+    r"\bcod\b",
+    r"key\s+features\s+of\s+[^:.,]*[:.,]",
+    r"specifications?\s+of\s+[^:.,]*[:.,]",
+    r"general\s+in\s+the\s+box\s+[^:.,]*[:.,]?",
+    r"\(pack\s+of\s+\d+\)",
+    r"\b[a-z0-9]{10,}\b",  # long alphanumeric SKU-like tokens
+]
+_BOILERPLATE_RE = re.compile("|".join(_BOILERPLATE_PATTERNS), re.IGNORECASE)
+
+
+def strip_boilerplate(text: str) -> str:
+    """Remove Flipkart marketing/boilerplate phrases from product text."""
+    if not text or not isinstance(text, str):
+        return ""
+    cleaned = _BOILERPLATE_RE.sub(" ", text)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"\s*([,.;:!?])\s*", r"\1 ", cleaned)
+    return cleaned.strip(" ,.;:-")
+
+
 def extract_combined_text(row: dict) -> str:
-    """Combine product fields into a single searchable text."""
+    """Combine product fields into a single searchable text (boilerplate-stripped)."""
+    description = strip_boilerplate(str(row.get("description", "")))
+    features = strip_boilerplate(str(row.get("features", "")))
     parts = [
         f"Product: {row.get('product_name', '')}",
         f"Category: {row.get('department', '')} {row.get('category', '')} {row.get('subcategory', '')}",
         f"Type: {row.get('product_type', '')}",
         f"Brand: {row.get('brand', '')}",
-        f"Features: {row.get('features', '')}",
-        f"Description: {row.get('description', '')}",
+        f"Features: {features}",
+        f"Description: {description}",
         f"Tags: {row.get('tags', '')}",
     ]
     return " ".join(p for p in parts if p.split(": ", 1)[-1].strip())

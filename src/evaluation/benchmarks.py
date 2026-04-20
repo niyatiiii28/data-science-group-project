@@ -6,7 +6,7 @@ from datetime import datetime
 
 from src.models.orchestrator import SearchOrchestrator
 from src.evaluation.metrics import compute_all_metrics, average_metrics
-from src.evaluation.test_queries import ALL_QUERY_SETS
+from src.evaluation.test_queries import ALL_QUERY_SETS, is_relevant
 from src.core.schemas import EvaluationResult, EvaluationReport
 
 logger = logging.getLogger("semantic_search")
@@ -16,29 +16,42 @@ def run_benchmarks(
     orchestrator: SearchOrchestrator,
     top_k: int = 5,
 ) -> EvaluationReport:
-    """Run all loaded models against all test query sets."""
+    """Run all loaded models against all test query sets.
+
+    Ground truth is category-keyword-based: a retrieved item is relevant if
+    any expected term is a substring of its department/category/subcategory/
+    product_type/product_name.
+    """
     results = []
     loaded = orchestrator.get_loaded_models()
-    logger.info("Running benchmarks on models: %s", loaded)
+    # Include the ensemble as an extra "model" for comparison.
+    eval_targets = list(loaded) + ["ensemble"]
+    logger.info("Running benchmarks on models: %s", eval_targets)
 
-    for model_id in loaded:
+    for model_id in eval_targets:
         for query_type, queries in ALL_QUERY_SETS.items():
             metrics_list = []
             total_time = 0.0
 
-            for query_str, relevant_ids in queries:
+            for query_str, relevant_terms in queries:
                 start = time.perf_counter()
                 try:
-                    response = orchestrator.search(query_str, model_id=model_id, top_k=top_k)
-                    retrieved_ids = [r.product_id for r in response.results]
+                    if model_id == "ensemble":
+                        response = orchestrator.search_ensemble(query_str, top_k=top_k)
+                    else:
+                        response = orchestrator.search(query_str, model_id=model_id, top_k=top_k)
+                    flags = [
+                        1 if is_relevant(r.model_dump(), relevant_terms) else 0
+                        for r in response.results
+                    ]
                 except Exception as e:
                     logger.warning("Model %s failed on query '%s': %s", model_id, query_str, e)
-                    retrieved_ids = []
+                    flags = []
 
                 elapsed = (time.perf_counter() - start) * 1000
                 total_time += elapsed
 
-                metrics = compute_all_metrics(relevant_ids, retrieved_ids, k=top_k)
+                metrics = compute_all_metrics(flags, k=top_k)
                 metrics_list.append(metrics)
 
             avg = average_metrics(metrics_list)

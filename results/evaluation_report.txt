@@ -1,16 +1,22 @@
 ==========================================================================================
 EVALUATION REPORT
-Timestamp: 2026-04-18T20:00:59.704835
+Timestamp: 2026-04-21T02:10:16.443604
 ==========================================================================================
 Model                     Type          P@K    R@K    MRR   NDCG     F1     Time
 ------------------------------------------------------------------------------------------
-model1_hierarchical       exact       0.000  0.000  0.000  0.000  0.000  1980.4ms
-model1_hierarchical       semantic    0.000  0.000  0.000  0.000  0.000   436.3ms
-model1_hierarchical       vague       0.000  0.000  0.000  0.000  0.000   492.1ms
-model2_flat_semantic      exact       0.000  0.000  0.000  0.000  0.000    32.6ms
-model2_flat_semantic      semantic    0.000  0.000  0.000  0.000  0.000    32.5ms
-model2_flat_semantic      vague       0.000  0.000  0.000  0.000  0.000    32.4ms
-model3_enhanced           exact       0.000  0.000  0.000  0.000  0.000    39.5ms
-model3_enhanced           semantic    0.000  0.000  0.000  0.000  0.000    50.3ms
-model3_enhanced           vague       0.000  0.000  0.000  0.000  0.000    46.4ms
+model1_hierarchical       exact       0.480  0.600  0.567  0.579  0.523   532.1ms
+model1_hierarchical       semantic    0.723  0.846  0.795  0.813  0.769   218.2ms
+model1_hierarchical       vague       0.643  0.857  0.774  0.803  0.707   249.7ms
+model2_flat_semantic      exact       0.787  0.867  0.867  0.853  0.819    15.2ms
+model2_flat_semantic      semantic    0.800  0.923  0.846  0.883  0.845    16.7ms
+model2_flat_semantic      vague       0.614  0.857  0.714  0.765  0.691    16.9ms
+model3_enhanced           exact       0.653  0.800  0.733  0.755  0.702    19.1ms
+model3_enhanced           semantic    0.815  1.000  0.859  0.897  0.871    17.5ms
+model3_enhanced           vague       0.514  0.786  0.750  0.758  0.583    19.1ms
+model4_llm                exact       0.653  0.800  0.733  0.755  0.702  1443.0ms
+model4_llm                semantic    0.815  1.000  0.859  0.897  0.871  1340.3ms
+model4_llm                vague       0.629  0.929  0.750  0.801  0.715  1384.8ms
+ensemble                  exact       0.747  0.867  0.800  0.816  0.794  1560.5ms
+ensemble                  semantic    0.785  1.000  0.877  0.904  0.842  1651.2ms
+ensemble                  vague       0.586  0.857  0.764  0.778  0.664  1625.2ms
 ==========================================================================================

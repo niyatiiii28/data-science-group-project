@@ -37,18 +37,20 @@ MAX_HIERARCHY_DEPTH = 5
 # Embedding batch size for SentenceTransformer
 EMBEDDING_BATCH_SIZE = 256
 
-# FAISS training threshold — use IVF only above this count
-FAISS_IVF_THRESHOLD = 5000
+# FAISS training threshold — use IVF only above this count. Flat IP is exact
+# and fast enough at this size; IVF with nprobe<<nlist loses recall.
+FAISS_IVF_THRESHOLD = 50000
 
 # Score decay factor for hierarchical search
 HIERARCHY_DECAY_FACTOR = 0.85
 
-# Re-ranking weights for enhanced search (Model 3)
+# Re-ranking weights for enhanced search (Model 3). Semantic dominates because
+# rating/reviews/stock are largely empty or uniform on the Flipkart corpus.
 RERANK_WEIGHTS = {
-    "semantic_similarity": 0.6,
-    "rating_score": 0.15,
-    "reviews_score": 0.10,
-    "price_relevance": 0.10,
+    "semantic_similarity": 0.85,
+    "rating_score": 0.05,
+    "reviews_score": 0.02,
+    "price_relevance": 0.03,
     "stock_bonus": 0.05,
 }
 

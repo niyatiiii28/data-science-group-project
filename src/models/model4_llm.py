@@ -15,8 +15,79 @@ from config.settings import settings
 logger = logging.getLogger("semantic_search")
 
 
+# Rule-based intent → product-vocabulary expansion. Used as a deterministic
+# fallback when the LLM is unavailable (quota exceeded, no key, network error).
+# Keys are substring triggers; values are space-joined expansions that steer the
+# embedding toward the correct product cluster.
+_INTENT_EXPANSIONS = {
+    "mens tshirt": "men men's clothing t-shirt tshirt tee round neck polo neck",
+    "men tshirt": "men men's clothing t-shirt tshirt tee round neck polo neck",
+    "men t-shirt": "men men's clothing t-shirt tshirt tee round neck polo neck",
+    "mens t-shirt": "men men's clothing t-shirt tshirt tee round neck polo neck",
+    "men tee": "men men's clothing t-shirt tshirt tee",
+    "for men tshirt": "men men's clothing t-shirt tshirt tee",
+    "watch movies": "television tv led lcd smart monitor home theatre projector",
+    "watch videos": "television tv monitor tablet laptop projector",
+    "listen to music": "headphone earphone speaker bluetooth headset audio",
+    "listen music": "headphone earphone speaker bluetooth headset audio",
+    "take pictures": "camera dslr mirrorless lens photography smartphone",
+    "take photos": "camera dslr mirrorless lens photography",
+    "record video": "camera camcorder gopro action camera dslr",
+    "play games": "gaming console controller joystick gamepad",
+    "read book": "kindle ereader tablet",
+    "read digitally": "kindle ereader tablet",
+    "cook food": "cookware pan pot kitchen utensil knife",
+    "prepare food": "cookware pan pot kitchen utensil knife chopping board",
+    "store food": "container jar storage box airtight",
+    "clean clothes": "washing machine detergent laundry",
+    "wash clothes": "washing machine detergent laundry",
+    "stay cool": "air conditioner fan cooler",
+    "stay warm": "heater blanket jacket sweater",
+    "sleep better": "bed mattress pillow bedsheet",
+    "work out": "gym fitness dumbbell yoga mat treadmill sports",
+    "exercise": "gym fitness dumbbell yoga mat treadmill sports shoes",
+    "run outdoors": "running shoes sports shoes athletic footwear",
+    "walk comfortably": "shoes sneakers footwear casual",
+    "carry laptop": "laptop bag backpack messenger",
+    "carry things": "bag backpack handbag tote",
+    "keep money": "wallet purse cardholder",
+    "organize money": "wallet purse cardholder",
+    "wear to office": "formal shirt trouser blazer tie formal shoe",
+    "wear to work": "formal shirt trouser blazer tie formal shoe",
+    "wear casually": "t-shirt jeans casual shirt",
+    "feet for exercise": "sports shoes running shoes athletic footwear",
+    "on my feet": "shoes footwear sneakers sandal",
+    "for my daughter": "girls kids children",
+    "for my son": "boys kids children",
+    "for my baby": "baby infant toddler",
+    "for kids": "kids children boys girls",
+    "charge phone": "mobile charger power bank cable adapter",
+    "cut hair": "trimmer shaver clipper",
+    "shave": "trimmer shaver razor",
+    "protect phone": "mobile case cover screen guard tempered glass",
+    "smell good": "perfume deodorant cologne fragrance",
+    "look good": "cosmetics makeup beauty skincare",
+}
+
+
+def _rule_based_expand(query: str) -> str:
+    """Deterministic query expansion. Appends product vocabulary for matching intents."""
+    ql = query.lower()
+    expansions: list[str] = []
+    for trigger, terms in _INTENT_EXPANSIONS.items():
+        if trigger in ql:
+            expansions.append(terms)
+    if not expansions:
+        return query
+    return query + " " + " ".join(expansions)
+
+
 class LLMEnhancedSearchModel(EnhancedSemanticSearchModel):
-    """Extends Model 3: refines queries with LLM before searching."""
+    """Extends Model 3: refines queries with LLM before searching.
+
+    If the LLM call fails (quota, auth, network), a deterministic intent-based
+    expansion is used so the model still improves on vague queries.
+    """
 
     model_id = "model4_llm"
 
@@ -58,7 +129,7 @@ class LLMEnhancedSearchModel(EnhancedSemanticSearchModel):
         return self._llm_client
 
     def enhance_query(self, query: str) -> str:
-        """Use LLM to refine a vague/conversational query."""
+        """Refine a vague/conversational query via LLM, with rule-based fallback."""
         try:
             client = self._get_llm_client()
             response = client.chat.completions.create(
@@ -72,26 +143,35 @@ class LLMEnhancedSearchModel(EnhancedSemanticSearchModel):
                 timeout=10,
             )
             refined = response.choices[0].message.content.strip()
-            logger.info("[Model 4] Query refined: '%s' → '%s'", query, refined)
+            logger.info("[Model 4] Query refined (LLM): '%s' -> '%s'", query, refined)
             return refined
         except LLMError:
             raise
         except Exception as e:
-            logger.warning("[Model 4] LLM call failed: %s. Falling back to original query.", e)
-            return query
+            expanded = _rule_based_expand(query)
+            if expanded != query:
+                logger.warning(
+                    "[Model 4] LLM failed (%s); using rule-based expansion: '%s' -> '%s'",
+                    e, query, expanded,
+                )
+            else:
+                logger.warning("[Model 4] LLM failed (%s); no rule match, using raw query.", e)
+            return expanded
 
     def search(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        """Enhance query with LLM, then use Model 3 search."""
+        """Enhance query (LLM or rule-based), then use Model 3 search."""
         if not self._ready:
             raise RuntimeError("Model 4 not initialized. Call build_index() first.")
 
         try:
             enhanced_query = self.enhance_query(query)
         except LLMError:
-            logger.warning("[Model 4] LLM unavailable, falling back to Model 3 search")
-            enhanced_query = query
+            enhanced_query = _rule_based_expand(query)
+            logger.warning(
+                "[Model 4] LLM unavailable; rule-based expansion: '%s' -> '%s'",
+                query, enhanced_query,
+            )
 
-        # Use parent (Model 3) search with enhanced query
         return super().search(enhanced_query, top_k)
 
     def search_with_fallback(self, query: str, top_k: int = 5) -> tuple[list[SearchResult], str]:
@@ -99,7 +179,7 @@ class LLMEnhancedSearchModel(EnhancedSemanticSearchModel):
         try:
             enhanced_query = self.enhance_query(query)
         except LLMError:
-            enhanced_query = query
+            enhanced_query = _rule_based_expand(query)
 
         results = super().search(enhanced_query, top_k)
         return results, enhanced_query

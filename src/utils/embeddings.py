@@ -23,7 +23,16 @@ def get_embedding_model():
 
         model_name = settings.embedding_model_name
         logger.info("Loading embedding model: %s", model_name)
-        _model_instance = SentenceTransformer(model_name)
+        try:
+            # Prefer offline load so query-time inference does not depend on
+            # external connectivity once the model is cached locally.
+            _model_instance = SentenceTransformer(model_name, local_files_only=True)
+        except Exception as local_err:
+            logger.warning(
+                "Local embedding model load failed (%s). Trying online resolution.",
+                local_err,
+            )
+            _model_instance = SentenceTransformer(model_name)
 
         # Auto-detect GPU
         device = _model_instance.device

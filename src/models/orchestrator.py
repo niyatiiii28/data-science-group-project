@@ -1,6 +1,7 @@
 """Multi-model orchestrator: routes queries, runs ensemble, deduplicates results."""
 
 import logging
+import re
 import time
 from typing import Optional
 
@@ -24,6 +25,90 @@ class SearchOrchestrator:
     def __init__(self):
         self.models: dict[str, BaseSearchModel] = {}
         self.df: Optional[pd.DataFrame] = None
+
+    @staticmethod
+    def _query_constraints(query: str) -> dict:
+        """Extract lightweight lexical intent constraints from query text."""
+        q = query.lower().strip()
+
+        # Gender intent
+        men_pat = r"\b(men|mens|men's|male|gents|gentlemen|boy)\b"
+        women_pat = r"\b(women|womens|women's|female|ladies|girl)\b"
+        gender = None
+        if re.search(men_pat, q):
+            gender = "men"
+        elif re.search(women_pat, q):
+            gender = "women"
+
+        # Product-type intent for common ambiguous apparel terms
+        wants_tshirt = bool(re.search(r"\b(t[\s\-]?shirt|tee|tees)\b", q))
+        wants_kids = bool(re.search(r"\b(kid|kids|child|children|boy|girl|infant|baby|toddler)\b", q))
+
+        return {
+            "gender": gender,
+            "wants_tshirt": wants_tshirt,
+            "wants_kids": wants_kids,
+        }
+
+    @staticmethod
+    def _intent_adjusted_score(result: SearchResult, base_score: float, constraints: dict) -> float:
+        """Apply deterministic boosts/penalties for explicit intent (gender/type)."""
+        text = " ".join([
+            str(result.product_name or ""),
+            str(result.department or ""),
+            str(result.category or ""),
+            str(result.description or ""),
+        ]).lower()
+
+        score = base_score
+
+        has_men = bool(re.search(r"\b(men|men's|mens|male|gents|boy)\b", text))
+        has_women = bool(re.search(r"\b(women|women's|womens|female|ladies|girl)\b", text))
+        has_kids = bool(re.search(r"\b(kid|kids|child|children|boy|girl|infant|baby|toddler)\b", text))
+
+        gender = constraints.get("gender")
+        if gender == "men":
+            if has_women and not has_men:
+                score *= 0.35
+            elif has_men:
+                score *= 1.20
+        elif gender == "women":
+            if has_men and not has_women:
+                score *= 0.35
+            elif has_women:
+                score *= 1.20
+
+        if gender in {"men", "women"} and has_kids and not constraints.get("wants_kids"):
+            score *= 0.60
+
+        if constraints.get("wants_tshirt"):
+            has_tshirt = bool(re.search(r"\b(t[\s\-]?shirt|tee|polo neck|round neck)\b", text))
+            has_bra = bool(re.search(r"\bbra\b", text))
+            if has_bra:
+                score *= 0.30
+            if has_tshirt:
+                score *= 1.15
+
+        return max(0.0, min(score, 1.0))
+
+    def _apply_query_intent_rerank(self, query: str, results: list[SearchResult]) -> list[SearchResult]:
+        """Re-rank results with deterministic intent constraints."""
+        constraints = self._query_constraints(query)
+        if not constraints["gender"] and not constraints["wants_tshirt"]:
+            return results
+
+        rescored: list[tuple[float, SearchResult]] = []
+        for r in results:
+            adj = self._intent_adjusted_score(r, float(r.confidence_score), constraints)
+            r.confidence_score = round(adj, 4)
+            rescored.append((adj, r))
+
+        rescored.sort(key=lambda x: x[0], reverse=True)
+        reranked = []
+        for rank, (_, r) in enumerate(rescored, 1):
+            r.rank = rank
+            reranked.append(r)
+        return reranked
 
     def initialize_models(self, df: pd.DataFrame, enriched_df: Optional[pd.DataFrame] = None) -> None:
         """Build indices for all 4 models."""
@@ -61,6 +146,9 @@ class SearchOrchestrator:
     ) -> SearchResponse:
         """Route query to a specific model or run all."""
         start = time.perf_counter()
+        constraints = self._query_constraints(query)
+        constrained = bool(constraints["gender"] or constraints["wants_tshirt"])
+        fetch_k = min(top_k * 8, 50) if constrained else top_k
 
         if model_id:
             if model_id not in self.models:
@@ -68,14 +156,16 @@ class SearchOrchestrator:
             model = self.models[model_id]
             if not model.is_ready:
                 raise ModelNotLoadedError(f"Model {model_id} is not loaded")
-            results = model.search(query, top_k)
+            results = model.search(query, fetch_k)
+            results = self._apply_query_intent_rerank(query, results)[:top_k]
             used_model = model_id
         else:
             # Default to Model 3 (best balance of quality and speed)
             used_model = ModelID.ENHANCED_SEMANTIC
             model = self.models.get(used_model)
             if model and model.is_ready:
-                results = model.search(query, top_k)
+                results = model.search(query, fetch_k)
+                results = self._apply_query_intent_rerank(query, results)[:top_k]
             else:
                 raise ModelNotLoadedError("No models available")
 
@@ -99,6 +189,9 @@ class SearchOrchestrator:
             ModelID.ENHANCED_SEMANTIC: 0.35,
             ModelID.LLM_ENHANCED: 0.25,
         }
+        constraints = self._query_constraints(query)
+        constrained = bool(constraints["gender"] or constraints["wants_tshirt"])
+        per_model_k = min(top_k * 8, 50) if constrained else (top_k * 2)
 
         # Collect results from all ready models
         product_scores: dict[str, dict] = {}  # product_id → {score, result}
@@ -109,10 +202,11 @@ class SearchOrchestrator:
                 continue
 
             try:
-                results = model.search(query, top_k * 2)
+                results = model.search(query, per_model_k)
                 for result in results:
                     pid = result.product_id
-                    weighted_score = result.confidence_score * weight
+                    adjusted = self._intent_adjusted_score(result, float(result.confidence_score), constraints)
+                    weighted_score = adjusted * weight
                     if pid in product_scores:
                         product_scores[pid]["score"] += weighted_score
                         product_scores[pid]["votes"] += 1

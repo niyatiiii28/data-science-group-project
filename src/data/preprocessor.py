@@ -35,6 +35,8 @@ class DataPreprocessor:
         return self.df
 
     def clean_text_fields(self) -> None:
+        from src.utils.text_processing import strip_boilerplate
+
         text_cols = [
             "product_name", "description", "features", "tags",
             "brand", "keywords", "department", "category",
@@ -43,6 +45,11 @@ class DataPreprocessor:
         for col in text_cols:
             if col in self.df.columns:
                 self.df[col] = self.df[col].astype(str).apply(_clean_text)
+
+        # Extra pass: remove Flipkart marketing boilerplate from long text fields
+        for col in ("description", "features"):
+            if col in self.df.columns:
+                self.df[col] = self.df[col].apply(strip_boilerplate)
 
     def normalize_prices(self) -> None:
         if "price" in self.df.columns:
